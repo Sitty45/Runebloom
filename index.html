@@ -510,6 +510,26 @@ body{background:#2B3326}
 .battle .btn.primary{background:rgba(92,140,64,.9)}
 .battle .btn:disabled{opacity:.4}
 @media (orientation:portrait){ .game .drawer{height:170px} .game .drawer.compact{height:150px} }
+/* ========== v6: three homes for menus. Bottom (fits its content), left sidebar (bag, spirits, staff, guide), right sidebar (settings) ========== */
+.game .drawer[data-side]{transition:transform .28s cubic-bezier(.2,.9,.3,1.05),opacity .2s}
+.game .drawer[data-side="bottom"],.game .drawer[data-side="carousel"]{height:auto!important;max-height:58vh;min-height:0}
+.game .drawer[data-side="carousel"]{max-height:150px}
+.game .drawer[data-side="bottom"] .panel{flex-direction:column;overflow-x:hidden;overflow-y:auto;scroll-snap-type:none}
+.game .drawer[data-side="bottom"] .card,.game .drawer[data-side="bottom"] .card.full{width:auto;max-height:none;overflow:visible}
+.game .drawer[data-side="left"],.game .drawer[data-side="right"]{top:0;bottom:0!important;height:auto!important;max-height:none;width:max(25vw,230px);padding:calc(8px + env(safe-area-inset-top,0px)) 8px calc(10px + env(safe-area-inset-bottom,0px))}
+.game .drawer[data-side="left"]{left:0;right:auto;border-radius:0 12px 12px 0;border-top:0;border-right:1px solid rgba(255,255,255,.12);transform:translateX(-105%)}
+.game .drawer[data-side="right"]{right:0;left:auto;border-radius:12px 0 0 12px;border-top:0;border-left:1px solid rgba(255,255,255,.12);transform:translateX(105%)}
+.game .drawer[data-side="left"].open,.game .drawer[data-side="right"].open{transform:none}
+.game .drawer[data-side="left"] .panel,.game .drawer[data-side="right"] .panel{flex-direction:column;overflow-x:hidden;overflow-y:auto;scroll-snap-type:none;gap:5px}
+.game .drawer[data-side="left"] .card,.game .drawer[data-side="right"] .card{width:auto;max-height:none;overflow:visible}
+.game .drawer[data-side="left"] .card:has(> .item),.game .drawer[data-side="right"] .card:has(> .item){display:flex;flex-direction:column;align-items:stretch;width:auto;gap:3px}
+.game .drawer[data-side="left"] .card>.item,.game .drawer[data-side="right"] .card>.item{display:grid;grid-template-columns:24px minmax(0,1fr) auto;text-align:left;align-items:center;gap:6px;padding:3px 5px}
+.game .drawer[data-side="left"] .card>.item .thumb,.game .drawer[data-side="left"] .card>.item .silhouette,.game .drawer[data-side="left"] .card>.item .ldot,.game .drawer[data-side="left"] .card>.item .pdot{width:22px;height:22px}
+.game .drawer[data-side="left"] .card>.item b{white-space:normal}
+.game .drawer[data-side="left"] .card>.item .latin{display:block}
+.game .drawer[data-side="left"] .card>.item>div:last-child{margin:0;flex-direction:row}
+.game.dopen .hud-tl{opacity:.35}
+@media (orientation:portrait){ .game .drawer[data-side="left"],.game .drawer[data-side="right"]{width:min(78vw,300px)} }
 </style>
 
 <div class="game" id="game">
@@ -2023,7 +2043,7 @@ function treeSprite(key,x,z,h,flip,tint){
 /* one painted prop standing on the ground; h is its height in world units */
 function prop(name,x,z,h,flip,tint){
   const p=PROPS[name]; if(!p) return null;
-  if(typeof GH!=='undefined'&&(inGreenhouse(x,z,0.9)||Math.hypot(x-HOUSE.x,z-HOUSE.z)<3.4||Math.hypot(x-SHRINE.x,z-SHRINE.z)<3.6)) return null;
+  if(typeof GH!=='undefined'&&(inGreenhouse(x,z,0.9)||Math.hypot(x-HOUSE.x,z-HOUSE.z)<3.4||Math.hypot(x-SHRINE.x,z-SHRINE.z+0.6)<0.8)) return null;
   const sp=new THREE.Sprite(propMat(name,tint,windBucket(x,z),!inFocus(x,z,1))); sp.center.set(0.5,0.06); sp.userData.n=name;
   sp.scale.set(h*p[2]/p[3]*(flip?-1:1),h,1); sp.position.set(x,0,z); detailG.add(sp); return sp;
 }
@@ -2532,8 +2552,8 @@ const COMP_FS=['uniform sampler2D sharp; uniform sampler2D soft; uniform float v
  '  float l=dot(c,vec3(0.299,0.587,0.114)); c=mix(vec3(l),c,1.24);',   /* livelier colour */
  '  c=(c-0.5)*1.07+0.5; c*=vec3(1.02,1.02,0.97);',      /* a touch of contrast, warm sun */
  '  c=mix(c,c*vec3(1.08,0.98,0.86)+vec3(0.03,0.01,0.0),warm*0.55);',
- '  float ln=dot(c,vec3(0.3,0.59,0.11)); c=mix(c,vec3(ln)*vec3(0.7,0.8,1.1)+max(c-0.5,0.0)*vec3(1.6,1.2,0.6),night*0.5);',
- '  vec2 q=vUv-0.5; c*=1.0-dot(q,q)*(vig+night*0.6);',
+ '  float ln=dot(c,vec3(0.3,0.59,0.11)); c=mix(c,vec3(ln)*vec3(0.78,0.86,1.12)+max(c-0.5,0.0)*vec3(1.6,1.2,0.6),night*0.32);',
+ '  vec2 q=vUv-0.5; c*=1.0-dot(q,q)*(vig*0.8+night*0.3); c*=1.03;',
  '  gl_FragColor=vec4(clamp(c,0.0,1.0),1.0);',
  '}'].join('\n');
 function initPost(){
@@ -4319,16 +4339,16 @@ function cellStep(){
    Cloud shadows sweep across the garden in sunshine, and sunlit gaps glow between them. */
 const DAY={override:null,h:12,sunI:1,hemiI:1,night:0,warm:0,elev:1};
 const SKYKEYS=[ /* hour, sun colour, sun strength, sky colour, ground colour, ambient, haze colour, night, warm */
-  [0,  '#A8BCEC',0.42,'#7A8CC8','#465070',0.8,'#34405E',1,0],
-  [4.8,'#A8BCEC',0.42,'#7A8CC8','#465070',0.8,'#34405E',1,0],
+  [0,  '#B4C6F0',0.5,'#8A9CD4','#56607E',1.0,'#3E4A68',1,0],
+  [4.8,'#B4C6F0',0.5,'#8A9CD4','#56607E',1.0,'#3E4A68',1,0],
   [5.8,'#FF9A6A',0.45,'#C8A8C0','#6A5A50',0.66,'#E8C0A8',0.45,0.9],
   [7.0,'#FFD8A0',0.7,'#CFE0EC','#7E7A52',0.8,'#ECE4CC',0,0.55],
-  [10, '#FFF0D6',0.74,'#D4E6EE','#7E7A52',0.78,'#E2EAD4',0,0.08],
-  [15, '#FFEACA',0.74,'#D4E6EE','#7E7A52',0.78,'#E2EAD4',0,0.14],
+  [10, '#FFF2DA',0.8,'#DAEAF2','#86825A',0.86,'#E2EAD4',0,0.08],
+  [15, '#FFEDD0',0.8,'#DAEAF2','#86825A',0.86,'#E2EAD4',0,0.14],
   [17.3,'#FFC880',0.74,'#E8D8C8','#7E6A4A',0.8,'#F0DCC0',0,0.75],
   [18.4,'#FF8A5A',0.5,'#B898B8','#5A4A48',0.66,'#D8A8A0',0.4,1],
-  [19.4,'#9AA0D8',0.32,'#6A74A8','#3A4258',0.72,'#3A4262',0.95,0.1],
-  [24, '#A8BCEC',0.42,'#7A8CC8','#465070',0.8,'#34405E',1,0]
+  [19.4,'#A4AADC',0.4,'#7A84B8','#4A5268',0.9,'#3A4262',0.95,0.1],
+  [24, '#B4C6F0',0.5,'#8A9CD4','#56607E',1.0,'#3E4A68',1,0]
 ];
 function clockHour(){ if(DAY.override!=null) return DAY.override; const d=new Date(); return d.getHours()+d.getMinutes()/60+d.getSeconds()/3600; }
 function skyAt(h){
@@ -4468,6 +4488,7 @@ function tdMask2(N){
     for(let i=0;i<60;i++){ const u=r(), j=Math.min(HTRAIL.length-2,Math.floor(u*(HTRAIL.length-1))), f=u*(HTRAIL.length-1)-j, a=HTRAIL[j], b=HTRAIL[j+1]; tdBlobM(lg,k,X,a[0]+(b[0]-a[0])*f+(r()-0.5)*2.4,a[1]+(b[1]-a[1])*f+(r()-0.5)*1.4,0.3+r()*0.4,'#fff',0.7); } });
   const C=layer(lg=>{
     apron(lg,GH.x,GH.z,GH.w/2+1.1,GH.d/2+1.0,340);
+    apron(lg,SHRINE.x,SHRINE.z-0.4,2.3,2.0,260);
     lg.strokeStyle='#fff'; lg.lineCap='round'; lg.lineWidth=1.3*k; lg.beginPath(); TRAIL.forEach((p,i)=>i?lg.lineTo(X(p[0]),X(p[1])):lg.moveTo(X(p[0]),X(p[1]))); lg.stroke();
     for(let i=0;i<60;i++){ const u=r(), j=Math.min(TRAIL.length-2,Math.floor(u*(TRAIL.length-1))), f=u*(TRAIL.length-1)-j, a=TRAIL[j], b=TRAIL[j+1]; tdBlobM(lg,k,X,a[0]+(b[0]-a[0])*f+(r()-0.5)*1.4,a[1]+(b[1]-a[1])*f+(r()-0.5)*2.4,0.3+r()*0.4,'#fff',0.7); } });
   const F=layer(lg=>{ lg.fillStyle='#fff'; lg.fillRect(0,0,N,N); lg.fillStyle='#000'; lg.beginPath(); for(let s=0;s<=96;s++){ const a=s/96*6.2832, rr=zr(H,a)+2.2, x=X(H.x+Math.cos(a)*rr), y=X(H.z+Math.sin(a)*rr); s?lg.lineTo(x,y):lg.moveTo(x,y); } lg.fill();
@@ -4823,26 +4844,27 @@ function runeGlyph(R,k){ /* a diamond with an inner sigil, drawn in the stone's 
   const r=rng(k*31+5), sig=[[0,cy+0.11,z]]; for(let i=0;i<4;i++) sig.push([(r()-0.5)*0.12,cy+0.08-i*0.06,z]); seg(sig,0.009);
   seg([[-0.04,cy-0.02,z],[0.04,cy+0.03,z]],0.008);
 }
+let shrineHalo=null, shrineMotes=[];
 function buildShrine(){
   if(typeof SHRINE==='undefined') return;
-  const G=WG(), R=WG(), r=rng(77), X=SHRINE.x, Z=SHRINE.z;
-  /* mossy ground and the spring */
-  PG.lathe(G,[0,0,0],[[3.0,0],[2.6,0.03],[1.6,0.045],[0,0.05]],28,(u,a,n)=>PG.lit(wgMix(HX('#4E7A34'),HX('#7AA048'),0.5+0.5*Math.sin(a*7+u*9)),n));
-  const pr=a=>1.05*(1+0.14*Math.sin(3*a+1)+0.07*Math.sin(5*a)), pc=[-0.2,0.06,0.45];
-  for(let s=0;s<36;s++){ const a0=s/36*6.2832, a1=(s+1)/36*6.2832, e0=[pc[0]+Math.cos(a0)*pr(a0),pc[1],pc[2]+Math.sin(a0)*pr(a0)], e1=[pc[0]+Math.cos(a1)*pr(a1),pc[1],pc[2]+Math.sin(a1)*pr(a1)];
-    wgV(G,pc,HX('#6ED8D0'),[0,1,0]); wgV(G,e1,HX('#2E8A90'),[0,1,0]); wgV(G,e0,HX('#2E8A90'),[0,1,0]); }
-  for(let i=0;i<22;i++){ const a=i/22*6.2832+r()*0.1, d=pr(a)+0.06; wgBall(G,pc[0]+Math.cos(a)*d,0.07,pc[2]+Math.sin(a)*d,0.09+r()*0.07,HX('#B8B4A8'),HX('#7A7868'),0.6,r); }
-  for(let i=0;i<5;i++){ const a=r()*6.28, d=r()*0.7; PG.disc(G,[pc[0]+Math.cos(a)*d,0.075,pc[2]+Math.sin(a)*d],0.09,PG.lit(HX('#5E9A44'),[0,1,0]),[0,1,0],1,1); }
-  /* boulders, ferns and flowers */
-  [[-2.4,0.9,0.35],[2.3,1.0,0.3],[0.9,1.6,0.25],[-1.4,1.7,0.22]].forEach(b=>wgBall(G,b[0],b[2]*0.5,b[1],b[2],HX('#A8A498'),HX('#6E7A58'),0.65,r));
-  const plant=(id,x,z,s,ry)=>{ const b=FLORA[id]; if(!b) return; const T=WG(); b(T,0.8,true,r); wgAppend(G,T,s,ry||0,x,0,z); };
-  plant('maidenhair',-2.3,-1.1,0.9); plant('maidenhair',1.0,-2.1,0.8,1); plant('birdsnest',2.6,-0.9,0.7); plant('everlast',-1.6,0.3,0.7);
-  plant('flannel',1.7,0.5,0.8); plant('hibbertia',-0.9,1.4,0.8); plant('pinkheath',2.4,0.6,0.7); plant('lomandra',-2.7,0.2,0.7); plant('christmasbell',-0.3,-2.2,0.7); plant('correa',0.6,1.9,0.6);
-  const mesh=gMesh(G); mesh.position.set(X,0,Z); mesh.receiveShadow=true; detailG.add(mesh);
-  buildTotem(X+0.2,Z-1.3,Math.atan2(-X,-Z));
+  const X=SHRINE.x, Z=SHRINE.z-0.6, r=rng(77);
+  /* the totem: a painted sprite like the shrubs, standing on the cobbles */
+  const img=new Image(); img.src=TOTEM_IMG; const tex=new THREE.Texture(img); img.onload=()=>{ tex.needsUpdate=true; };
+  const tm=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,alphaTest:0.4,depthWrite:false,fog:true})); tm.center.set(0.5,0.03); tm.scale.set(2.6*360/435,2.6,1); tm.position.set(X,0,Z); detailG.add(tm);
   if(!glowTex) glowTex=makeGlowTex();
-  shrineGlows=shrineGlows.map(p=>{ if(!Array.isArray(p)) return p; const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:new THREE.Color('#6AF0E8'),transparent:true,opacity:0.25,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); s.position.set(X+p[0],p[1],Z+p[2]); s.scale.set(1.1,1.4,1); detailG.add(s); return s; });
-  if(typeof addLightPool==='function') addLightPool(X-0.2,Z+0.45,3.2,2.6,'#7AF0E8',0.32);
+  /* halo: a soft ring of light on the ground and a glow behind the stone */
+  const hc=document.createElement('canvas'); hc.width=hc.height=128; const hg=hc.getContext('2d'), gr=hg.createRadialGradient(64,64,30,64,64,62); gr.addColorStop(0,'rgba(120,255,240,0)'); gr.addColorStop(0.55,'rgba(120,255,240,.85)'); gr.addColorStop(0.7,'rgba(160,255,245,.35)'); gr.addColorStop(1,'rgba(120,255,240,0)'); hg.fillStyle=gr; hg.fillRect(0,0,128,128);
+  const ht=new THREE.CanvasTexture(hc);
+  shrineHalo=new THREE.Mesh(new THREE.PlaneGeometry(3.2,3.2),new THREE.MeshBasicMaterial({map:ht,transparent:true,opacity:0.5,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); shrineHalo.rotation.x=-Math.PI/2; shrineHalo.position.set(X,0.06,Z); detailG.add(shrineHalo);
+  const back=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:new THREE.Color('#7AF8EA'),transparent:true,opacity:0.3,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); back.position.set(X,1.25,Z-0.05); back.scale.set(2.4,3.0,1); detailG.add(back); shrineGlows.push(back);
+  const rune=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:new THREE.Color('#9AFFF4'),transparent:true,opacity:0.4,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); rune.position.set(X+0.05,1.35,Z+0.1); rune.scale.set(0.8,1.1,1); detailG.add(rune); shrineGlows.push(rune);
+  if(!starTex) starTex=makeStarTex();
+  for(let i=0;i<10;i++){ const m=new THREE.Sprite(new THREE.SpriteMaterial({map:starTex,color:new THREE.Color(i%3?'#9AFFF4':'#FFF6C8'),transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); m.scale.set(0.16,0.16,1); m.userData={a:r()*6.28,d:0.5+r()*0.9,s:0.25+r()*0.3,ph:r()}; detailG.add(m); shrineMotes.push(m); }
+  /* flowers and shrubs around it, painted like the rest of the garden */
+  const W=['w0','w2','w4','w7','w10','w12','w15','w18','w21','w24','w27','w30','w33'];
+  for(let i=0;i<34;i++){ const a=r()*6.28, d=1.0+r()*1.9, x=X+Math.cos(a)*d, z=Z+Math.sin(a)*d*0.85; if(Math.abs(x-X)<0.9&&z>Z) continue; if(typeof wildflower==='function') wildflower(W[i%W.length],x,z,0.45+r()*0.35,r()<0.5); }
+  [['b3',-1.9,-0.7,1.2],['b6',1.9,-0.5,1.1],['b11',-1.3,-1.4,0.9],['b9',1.3,-1.5,0.95],['g6',-2.4,0.6,0.7],['g6',2.4,0.7,0.75],['b8',-0.7,-1.8,0.8],['f3',0.9,1.5,0.6],['g3',-1.2,1.6,0.55]].forEach(q=>prop(q[0],X+q[1],Z+q[2],q[3],q[1]<0));
+  if(typeof addLightPool==='function') addLightPool(X,Z+0.3,3.0,2.6,'#7AF0E8',0.35);
 }
 const SHRINE_SPOTS=[[-1.4,1.0],[1.0,1.3],[-0.4,1.8],[1.8,-0.2]];
 function shrineSpot(i){ const q=SHRINE_SPOTS[i%SHRINE_SPOTS.length]; return [SHRINE.x+q[0],SHRINE.z+q[1]]; }
@@ -4858,7 +4880,8 @@ function buildTotem(x,z,ry){
   if(!glowTex) glowTex=makeGlowTex(); const rs=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:new THREE.Color('#6AF0E8'),transparent:true,opacity:0.3,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
   rs.position.set(x+Math.sin(ry)*0.15,H*0.52,z+Math.cos(ry)*0.15); rs.scale.set(1.2,1.6,1); detailG.add(rs); shrineGlows.push(rs);
 }
-function shrineStep(t){ const nk=DAY.night||0; shrineRunes.forEach(m=>{ m.material.opacity=0.6+0.3*Math.sin(t*1.3)+nk*0.1; }); shrineGlows.forEach((s,i)=>{ s.material.opacity=(0.18+nk*0.35)*(0.8+0.2*Math.sin(t*1.7+i)); }); }
+function shrineStep(t){ const nk=DAY.night||0; if(shrineHalo){ shrineHalo.material.opacity=0.32+0.12*Math.sin(t*1.2)+nk*0.25; shrineHalo.rotation.z=t*0.1; }
+  shrineMotes.forEach(m=>{ const U=m.userData, ph=(t*U.s+U.ph)%1, a=U.a+t*0.3; m.position.set(SHRINE.x+Math.cos(a)*U.d,0.2+ph*2.4,SHRINE.z-0.6+Math.sin(a)*U.d*0.8); m.material.opacity=Math.sin(ph*Math.PI)*(0.7+nk*0.3); }); shrineGlows.forEach((s,i)=>{ s.material.opacity=(0.22+nk*0.3)*(0.75+0.25*Math.sin(t*1.7+i)); }); }
 /* ---------- pests on plants ---------- */
 function pestModel(type){
   const g=new THREE.Group(), G=WG(), r=rng(type.length*13), anim=[];
@@ -6028,6 +6051,8 @@ render=function(){
   if(!$('tabs').querySelector('[data-tab="bag"]')){ const loot=dropsWaiting(); const t=document.createElement('button'); t.className='mb'; t.dataset.act='tab'; t.dataset.tab='bag'; t.setAttribute('aria-label','Bag'); t.setAttribute('aria-pressed',String(drawerOpen&&S.tab==='bag'));
     t.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+ICON.bag+'</svg><span>Bag</span>'+(loot?'<i class="badge">'+loot+'</i>':''); const g=$('tabs').querySelector('[data-tab="guide"]'); $('tabs').insertBefore(t,g); }
   const pests=S.plants.filter(p=>pestOn(p)).length, gb=$('tabs').querySelector('[data-tab="garden"]'); if(gb&&pests&&!gb.querySelector('.badge')) gb.insertAdjacentHTML('beforeend','<i class="badge pest">'+pests+'</i>');
+  const side=S.tab==='settings'?'right':(S.tab==='bag'||S.tab==='spirits'||S.tab==='staff'||S.tab==='guide')?'left':(S.tab==='seeds'||S.tab==='plant')?'carousel':'bottom';
+  $('drawer').dataset.side=side;
   renderBattle();
 };
 /* quick actions: defend and loot shortcuts on the selected plant */
